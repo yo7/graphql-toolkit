@@ -16,7 +16,6 @@ export class Author {
   @InputField()
   name: string;
   @Field(() => [Post])
-  @InputField()
   posts(): Post[] {
     return POSTS.filter(({ authorId }) => authorId === this.id);
   }

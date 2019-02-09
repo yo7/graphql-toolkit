@@ -13,7 +13,7 @@ export function InputField<TSource, TResult>(typeFactory?: (type: void) => Type<
     const existingConfig = Reflect.getMetadata(GRAPHQL_INPUT_OBJECT_TYPE_CONFIG, target.constructor) || {};
     const inputFieldName = propertyKey;
     const inputFieldType = typeFactory ? typeFactory() : Reflect.getMetadata(DESIGN_TYPE, target, propertyKey);
-    const inputFieldGraphQLType = Reflect.getMetadata(GRAPHQL_INPUT_TYPE, inputFieldType) || getScalarTypeFromClass(inputFieldType) || inputFieldType;
+    const inputFieldGraphQLType = getInputTypeFromClass(inputFieldType) || getScalarTypeFromClass(inputFieldType) || inputFieldType;
     const inputFieldConfig: GraphQLInputFieldConfig = {
       type: inputFieldGraphQLType,
     };

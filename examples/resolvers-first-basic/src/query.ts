@@ -10,7 +10,7 @@ export class Query {
   authors(): Author[] {
     return AUTHORS;
   }
-  @Field(() => [Author])
+  @Field(() => [Post])
   posts(): Post[] {
     return POSTS;
   }

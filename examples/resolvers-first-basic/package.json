@@ -14,6 +14,6 @@
     "graphql": "14.0.2",
     "ts-node": "7.0.1",
     "reflect-metadata": "0.1.13",
-    "graphql-toolkit": "0.0.5"
+    "graphql-toolkit": "0.0.6-58ee6b4.0"
   }
 }
