@@ -1,5 +1,5 @@
 import { IResolvers } from 'graphql-tools';
-import * as deepMerge from 'deepmerge';
+import deepMerge from 'deepmerge';
 
 export type ResolversFactory<TSource, TContext> = (...args: any[]) => IResolvers<TSource, TContext>;
 export type ResolversDefinition<TSource, TContext> = IResolvers<TSource, TContext> | ResolversFactory<TSource, TContext>;

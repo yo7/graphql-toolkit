@@ -3,3 +3,4 @@ export * from './sonar';
 export * from './utils';
 export * from './loaders/documents';
 export * from './loaders/schema';
+export * from './resolvers-first';

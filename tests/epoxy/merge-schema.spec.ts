@@ -3,7 +3,7 @@ import { makeExecutableSchema } from 'graphql-tools';
 import { buildSchema, buildClientSchema, print } from 'graphql';
 import { stripWhitespaces } from './utils';
 import gql from 'graphql-tag';
-import * as introspectionSchema from './schema.json';
+import introspectionSchema from './schema.json';
 
 describe('Merge Schema', () => {
   describe('AST Schema Fixing', () => {

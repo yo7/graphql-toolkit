@@ -1,9 +1,9 @@
 import { mergeGraphQLSchemas } from '../../epoxy';
 import { SchemaLoader } from './schema-loader';
-import * as isGlob from 'is-glob';
-import * as isValidPath from 'is-valid-path';
+import isGlob from 'is-glob';
+import isValidPath from 'is-valid-path';
 import { DocumentNode, parse, Source, Kind } from 'graphql';
-import * as glob from 'glob';
+import glob from 'glob';
 import { readFileSync } from 'fs';
 import { extractDocumentStringFromCodeFile } from '../../utils/extract-document-string-from-code-file';
 
