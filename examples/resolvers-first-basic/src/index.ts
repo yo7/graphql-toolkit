@@ -24,4 +24,6 @@ POSTS.push(
   new Post({ id: 1, title: 'Hello Kamil', content: 'Good', authorId: 1 }),
 );
 
-app.listen(4000);
+app.listen(4000, () => {
+  console.log('GraphQL Server started');
+});
