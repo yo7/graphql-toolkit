@@ -7,10 +7,11 @@ import { getScalarTypeFromClass } from './scalar-type';
 import { getInputTypeFromClass } from './input-object-type';
 import { asArray } from '../utils/helpers';
 
-export const GRAPHQL_OBJECT_TYPE_CONFIG = Symbol('graphql:object-type-config');
-export const GRAPHQL_OBJECT_TYPE = Symbol('graphql:object-type');
-export const GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE = Symbol('graphql-object-type-build-queue');
-
+export const GRAPHQL_OBJECT_TYPE_CONFIG = 'graphql:object-type-config';
+export const GRAPHQL_OBJECT_TYPE = 'graphql:object-type';
+export const GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE = 'graphql-object-type-build-queue';
+export const CONTEXT_INJECTOR_FACTORY = 'context-injector:factory';
+export const PROPERTY_KEYS = 'property-keys';
 
 export function Arg(argumentName: string): ParameterDecorator {
   return (target, propertyKey, parameterIndex) => {
@@ -47,7 +48,31 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
         return getObjectTypeFromClass(fieldType) || getScalarTypeFromClass(fieldType) || fieldType;
       });
       if (typeof target[propertyKey] === 'function') {
-        existingConfig.fields[fieldName].resolve = ((root, args) => target[propertyKey].call(root, ...Object['values'](args))) as GraphQLFieldResolver<TSource, TContext, TArgs>; // TODO: NOT SAFE
+        existingConfig.fields[fieldName].resolve = ((root, args, context) => {
+          // If 3rd party DI container is defined
+          if (Reflect.hasMetadata(CONTEXT_INJECTOR_FACTORY, target.constructor)) {
+            const contextInjectorFactoryDefinition: ContextInjectorFactory<TContext> | Injector = Reflect.getMetadata(CONTEXT_INJECTOR_FACTORY, target.constructor);
+            let injector: Injector;
+            if (typeof contextInjectorFactoryDefinition === 'function') {
+              injector = contextInjectorFactoryDefinition(context);
+            } else if(typeof contextInjectorFactoryDefinition === 'object') {
+              injector = contextInjectorFactoryDefinition;
+            }
+            const keys = Reflect.getMetadata(PROPERTY_KEYS, target.constructor) || [];
+            for (const key of keys) {
+              if (Reflect.hasMetadata(DESIGN_TYPE, target, key as string)) {
+                root = root || {} as any;
+                Object.defineProperty(root, key, {
+                  get() {
+                    const serviceIdentifier = Reflect.getMetadata(DESIGN_TYPE, target, key as string);
+                    return injector.get(serviceIdentifier);
+                  }
+                })
+              }
+            }
+          }
+          return target[propertyKey].call(root, ...Object['values'](args));
+        }) as GraphQLFieldResolver<TSource, TContext, TArgs>; // TODO: NOT SAFE
       }
       Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, existingConfig, target.constructor);
     });
@@ -55,13 +80,45 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
   };
 }
 
-export interface ObjectTypeDecoratorConfig<TResult> {
-  name?: string;
-  implements?: MaybeArray<Type<TResult> | GraphQLObjectType | AnyType | unknown>;
+
+export function Inject(serviceIdentifier ?: any): PropertyDecorator {
+  return (target: any, propertyKey?: string, index?: number) => {
+    const allDependencies = Reflect.getMetadata(DESIGN_PARAMTYPES, target) || [];
+    const propertyKeys = Reflect.getMetadata(PROPERTY_KEYS, target.constructor || target) || [];
+    if (typeof propertyKey === 'undefined') {
+      if (typeof index !== 'undefined') {
+        allDependencies[index] = serviceIdentifier;
+      }
+    } else {
+      const designType = serviceIdentifier || Reflect.getMetadata(DESIGN_TYPE, target, propertyKey);
+      Reflect.defineMetadata(DESIGN_TYPE, designType, target, propertyKey);
+      propertyKeys.push(propertyKey);
+    }
+    Reflect.defineMetadata(DESIGN_PARAMTYPES, allDependencies, target);
+    Reflect.defineMetadata(PROPERTY_KEYS, propertyKeys, target.constructor || target);
+    return target;
+  };
 }
 
-export function ObjectType<TSource, TResult, TContext>(config: ObjectTypeDecoratorConfig<TResult> = {}): ClassDecorator {
+export interface Injector {
+  get<T>(serviceIdentifier: any): T;
+}
+
+export type ContextInjectorFactory<TContext> = (context: TContext) => Injector;
+
+export interface ObjectTypeDecoratorConfig<TResult, TContext> {
+  name?: string;
+  implements?: MaybeArray<Type<TResult> | GraphQLObjectType | AnyType | unknown>;
+  injector?: ContextInjectorFactory<TContext> | Injector;
+}
+
+export function ObjectType<TSource, TResult, TContext>(config: ObjectTypeDecoratorConfig<TResult, TContext> = {}): ClassDecorator {
   return target => {
+    // Delete the existing metadata on redeclaration, because it should override the existing generated ObjectType of the inherited super class
+    Reflect.deleteMetadata(GRAPHQL_OBJECT_TYPE, target);
+    if (config.injector) {
+      Reflect.defineMetadata(CONTEXT_INJECTOR_FACTORY, config.injector, target);
+    }
     const existingGraphQLObjectTypeQueue = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target) || [];
     existingGraphQLObjectTypeQueue.push(() => {
       const existingConfig: GraphQLObjectTypeConfig<TSource, TContext> = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, target) || {};

@@ -24,5 +24,5 @@ import { schema } from './schema';
     app.listen(4000, () => {
         console.log('GraphQL Server started');
     });
-
+    
 })();

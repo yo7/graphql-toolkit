@@ -4,7 +4,7 @@
 import { GraphQLScalarTypeConfig, GraphQLScalarType, GraphQLString, GraphQLFloat, GraphQLBoolean, GraphQLList } from 'graphql';
 import { Type } from './common';
 
-export const GRAPHQL_SCALAR_TYPE = Symbol('graphql:scalar-type');
+export const GRAPHQL_SCALAR_TYPE = 'graphql:scalar-type';
 
 export function ScalarType<TInternal, TExternal>(config: Partial<GraphQLScalarTypeConfig<TInternal, TExternal>> = {}): ClassDecorator {
   return target => {

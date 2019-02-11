@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "module": "commonjs",
+    "target": "es2018",
+    "lib": ["es6", "es2017.object", "esnext", "es2015"],
+    "suppressImplicitAnyIndexErrors": true,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "sourceMap": false,
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "importHelpers": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true
+  },
+  "files": ["src/index.ts"],
+  "exclude": ["node_modules"]
+}

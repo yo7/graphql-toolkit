@@ -12,6 +12,8 @@ import {
   UnionType,
   getScalarTypeFromClass,
   ScalarType,
+  Injector,
+  Inject,
 } from '../../src/resolvers-first';
 import { printType, graphql, GraphQLSchema, GraphQLObjectType } from 'graphql';
 function stripWhitespaces(str: string): string {
@@ -128,6 +130,41 @@ describe('ResolverFirst', async () => {
         expect(result.errors).toBeFalsy();
         expect(result.data.foo).toBe("FOO");
         expect(result.data.bar).toBe("BAR");
+    });
+    it('should inject dependencies using 3rd party DI container', async () => {
+        class FooService {
+            getFoo(){
+                return 'FOO';
+            }
+        }
+        const injector = {
+            get(serviceIdentifier: any){
+                if (serviceIdentifier === FooService) {
+                    return new FooService();
+                }
+            }
+        }
+        @ObjectType({
+            injector: ({ injector }: { injector: Injector }) => injector
+        })
+        class Query {
+            @Inject() fooService: FooService;
+
+            @Field()
+            foo(): string {
+                return this.fooService.getFoo();
+            }
+        }
+        
+        const result = await graphql({
+            schema: new GraphQLSchema({
+                query: getObjectTypeFromClass(Query) as GraphQLObjectType,
+              }),
+            contextValue: { injector },
+            source: `{ foo }`
+        });
+          expect(result.errors).toBeFalsy();
+          expect(result.data.foo).toBe("FOO");
     });
   });
   describe('Input Object Type', async () => {

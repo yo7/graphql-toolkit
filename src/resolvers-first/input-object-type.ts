@@ -5,8 +5,8 @@ import { GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInputField
 import { Type, DESIGN_TYPE } from './common';
 import { getScalarTypeFromClass } from '.';
 
-const GRAPHQL_INPUT_OBJECT_TYPE_CONFIG = Symbol('graphql:input-object-type-config');
-const GRAPHQL_INPUT_TYPE = Symbol('graphql:input-type');
+const GRAPHQL_INPUT_OBJECT_TYPE_CONFIG = 'graphql:input-object-type-config';
+const GRAPHQL_INPUT_TYPE = 'graphql:input-type';
 
 export function InputField<TSource, TResult>(typeFactory?: (type: void) => Type<TResult> | GraphQLInputType | object): PropertyDecorator {
   return (target: TSource, propertyKey) => {
