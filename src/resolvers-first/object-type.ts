@@ -50,7 +50,7 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
       if (typeof target[propertyKey] === 'function') {
         existingConfig.fields[fieldName].resolve = ((root, args, context) => {
           // If 3rd party DI container is defined
-          if (Reflect.hasMetadata(CONTEXT_INJECTOR_FACTORY, target.constructor)) {
+          if (Reflect.getMetadata(CONTEXT_INJECTOR_FACTORY, target.constructor)) {
             const contextInjectorFactoryDefinition: ContextInjectorFactory<TContext> | Injector = Reflect.getMetadata(CONTEXT_INJECTOR_FACTORY, target.constructor);
             let injector: Injector;
             if (typeof contextInjectorFactoryDefinition === 'function') {
@@ -60,7 +60,7 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
             }
             const keys = Reflect.getMetadata(PROPERTY_KEYS, target.constructor) || [];
             for (const key of keys) {
-              if (Reflect.hasMetadata(DESIGN_TYPE, target, key as string)) {
+              if (Reflect.getMetadata(DESIGN_TYPE, target, key as string)) {
                 root = root || {} as any;
                 Object.defineProperty(root, key, {
                   get() {
@@ -115,7 +115,7 @@ export interface ObjectTypeDecoratorConfig<TResult, TContext> {
 export function ObjectType<TSource, TResult, TContext>(config: ObjectTypeDecoratorConfig<TResult, TContext> = {}): ClassDecorator {
   return target => {
     // Delete the existing metadata on redeclaration, because it should override the existing generated ObjectType of the inherited super class
-    Reflect.deleteMetadata(GRAPHQL_OBJECT_TYPE, target);
+    Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE, undefined, target);
     if (config.injector) {
       Reflect.defineMetadata(CONTEXT_INJECTOR_FACTORY, config.injector, target);
     }
@@ -139,8 +139,8 @@ export function getObjectTypeFromClass<T>(target: Type<T> | unknown): any { // T
     return elementType && new GraphQLList(elementType);
   }
   if (
-    !Reflect.hasMetadata(GRAPHQL_OBJECT_TYPE, target as Type<T>) && 
-    Reflect.hasMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target as Type<T>)
+    !Reflect.getMetadata(GRAPHQL_OBJECT_TYPE, target as Type<T>) && 
+    Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target as Type<T>)
   ) {
     const existingGraphQLObjectTypeQueue: Array<Function> = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target as Type<T>);
     existingGraphQLObjectTypeQueue.forEach(fn => fn());

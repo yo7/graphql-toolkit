@@ -7,8 +7,8 @@ import { PatientModule } from "./patient";
 export const AppModule = new GraphQLModule({
     imports: [
         ConnectionModule,
-        AppointmentModule,
         DoctorModule,
-        PatientModule
+        PatientModule,
+        AppointmentModule,
     ]
 })
