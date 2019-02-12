@@ -3,7 +3,7 @@ import { AUTHORS_COLLECTION } from './symbols';
 import { Inject } from '@graphql-modules/di';
 import { Author } from './author';
 
-@ObjectType()
+@ObjectType({ injector: ({ injector }) => injector })
 export class Mutation {
     @Inject(AUTHORS_COLLECTION) authorsCollection: Author[];
     @Field()

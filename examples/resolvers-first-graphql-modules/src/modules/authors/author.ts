@@ -1,6 +1,6 @@
 import { ObjectType, Field, InputObjectType, InputField } from 'graphql-toolkit';
 
-@ObjectType()
+@ObjectType({ injector: ({ injector }) => injector })
 @InputObjectType({ name: 'AuthorInput'})
 export class Author {
   constructor({ id, name }: any) {

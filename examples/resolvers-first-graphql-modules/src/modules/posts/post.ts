@@ -3,7 +3,7 @@ import { Author } from '../authors/author';
 import { Inject } from '@graphql-modules/di';
 import { AUTHORS_COLLECTION } from '../authors/symbols';
 
-@ObjectType()
+@ObjectType({ injector: ({ injector }) => injector })
 @InputObjectType({ name: 'PostInput' })
 export class Post {
   @Inject(AUTHORS_COLLECTION) authorsCollection: Author[];

@@ -3,7 +3,7 @@ import { Inject } from '@graphql-modules/di';
 import { Post } from './post';
 import { POSTS_COLLECTION } from './symbols';
 
-@ObjectType()
+@ObjectType({ injector: ({ injector }) => injector })
 export class Mutation {
     @Inject(POSTS_COLLECTION) postsCollection: Post[];
     @Field()
