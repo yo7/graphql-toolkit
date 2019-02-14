@@ -131,6 +131,18 @@ describe('ResolverFirst', async () => {
         expect(result.data.foo).toBe("FOO");
         expect(result.data.bar).toBe("BAR");
     });
+    it('should make fields non-null if nullable is set false', async () => {
+      @ObjectType()
+      class Foo {
+        @Field(type => String, { nullable: false })
+        foo : string;
+      }
+      expect(stripWhitespaces(printType(getObjectTypeFromClass(Foo)))).toBe(stripWhitespaces(`
+        type Foo {
+          foo: String!
+        }
+      `))
+    });
     it('should inject dependencies using 3rd party DI container', async () => {
         class FooService {
             getFoo(){
@@ -259,6 +271,18 @@ describe('ResolverFirst', async () => {
             bar: String
         }
        `));
+    });
+    it('should make fields non-null if nullable is set false', async () => {
+      @InputObjectType()
+      class Foo {
+        @InputField(type => String, { nullable: false })
+        foo : string;
+      }
+      expect(stripWhitespaces(printType(getInputTypeFromClass(Foo)))).toBe(stripWhitespaces(`
+        input Foo {
+          foo: String!
+        }
+      `))
     });
   });
   describe('Interface Type', async () => {

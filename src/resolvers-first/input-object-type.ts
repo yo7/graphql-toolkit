@@ -1,21 +1,22 @@
 // tslint:disable-next-line:no-reference
 /// <reference path="../../node_modules/reflect-metadata/index.d.ts" />
 
-import { GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInputFieldConfig, GraphQLInputType, GraphQLList } from 'graphql';
+import { GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInputFieldConfig, GraphQLInputType, GraphQLList, GraphQLNonNull } from 'graphql';
 import { Type, DESIGN_TYPE } from './common';
 import { getScalarTypeFromClass } from '.';
+import { FieldDecoratorConfig } from './object-type';
 
 const GRAPHQL_INPUT_OBJECT_TYPE_CONFIG = 'graphql:input-object-type-config';
 const GRAPHQL_INPUT_TYPE = 'graphql:input-type';
 
-export function InputField<TSource, TResult>(typeFactory?: (type: void) => Type<TResult> | GraphQLInputType | object): PropertyDecorator {
+export function InputField<TSource, TResult>(typeFactory?: (type: void) => Type<TResult> | GraphQLInputType | object, config ?: FieldDecoratorConfig): PropertyDecorator {
   return (target: TSource, propertyKey) => {
     const existingConfig = Reflect.getMetadata(GRAPHQL_INPUT_OBJECT_TYPE_CONFIG, target.constructor) || {};
-    const inputFieldName = propertyKey;
+    const inputFieldName = ( config && config.name ) || propertyKey;
     const inputFieldType = typeFactory ? typeFactory() : Reflect.getMetadata(DESIGN_TYPE, target, propertyKey);
     const inputFieldGraphQLType = getInputTypeFromClass(inputFieldType) || getScalarTypeFromClass(inputFieldType) || inputFieldType;
     const inputFieldConfig: GraphQLInputFieldConfig = {
-      type: inputFieldGraphQLType,
+      type: (config && 'nullable' in config && !config.nullable) ? new GraphQLNonNull(inputFieldGraphQLType) : inputFieldGraphQLType,
     };
     existingConfig.fields = existingConfig.fields || {};
     existingConfig.fields[inputFieldName] = {

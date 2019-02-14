@@ -1,7 +1,7 @@
 // tslint:disable-next-line:no-reference
 /// <reference path="../../node_modules/reflect-metadata/index.d.ts" />
 
-import { GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLList, GraphQLFieldResolver } from 'graphql';
+import { GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLList, GraphQLFieldResolver, GraphQLFieldConfig, GraphQLNonNull, GraphQLInputType, GraphQLFieldConfigArgumentMap, GraphQLArgumentConfig } from 'graphql';
 import { Type, DESIGN_PARAMTYPES, DESIGN_TYPE, DESIGN_RETURNTYPE, AnyType, MaybeArray } from './common';
 import { getScalarTypeFromClass } from './scalar-type';
 import { getInputTypeFromClass } from './input-object-type';
@@ -13,20 +13,31 @@ export const GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE = 'graphql-object-type-build
 export const CONTEXT_INJECTOR_FACTORY = 'context-injector:factory';
 export const PROPERTY_KEYS = 'property-keys';
 
-export function Arg(argumentName: string): ParameterDecorator {
+export interface ArgDecoratorConfig<TResult> {
+  type ?: Type<TResult> | GraphQLInputType | object;
+  nullable ?: boolean;
+}
+
+export function Arg<TSource, TContext, TResult>(argumentName: string, config ?: ArgDecoratorConfig<TResult>): ParameterDecorator {
   return (target, propertyKey, parameterIndex) => {
     const existingGraphQLObjectTypeQueue = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target.constructor) || [];
     existingGraphQLObjectTypeQueue.push(() => {
-      const existingConfig = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, target.constructor) || {};
+      const existingConfig: GraphQLObjectTypeConfig<TSource, TContext> = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, target.constructor) || {};
       const fieldName = propertyKey;
       existingConfig.fields = existingConfig.fields || {};
       existingConfig.fields[fieldName] = existingConfig.fields[fieldName] || {};
       existingConfig.fields[fieldName].args = existingConfig.fields[fieldName].args || {};
       existingConfig.fields[fieldName].args.__defineGetter__(argumentName, () => {
-        const argumentType = Reflect.getMetadata(DESIGN_PARAMTYPES, target, propertyKey)[parameterIndex];
+        const argumentType = (config && config.type ) || Reflect.getMetadata(DESIGN_PARAMTYPES, target, propertyKey)[parameterIndex];
         const argumentGraphQLInputType = getInputTypeFromClass(argumentType) || getScalarTypeFromClass(argumentType) || argumentType;
-        return {
-          type: argumentGraphQLInputType
+        if (config && 'nullable' in config && !config.nullable) {
+          return {
+            type: new GraphQLNonNull(argumentGraphQLInputType)
+          };
+        } else {
+          return {
+            type: argumentGraphQLInputType
+          };
         }
       });
       Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, existingConfig, target.constructor);
@@ -35,17 +46,27 @@ export function Arg(argumentName: string): ParameterDecorator {
   };
 }
 
-export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: void) => Type<TResult> | GraphQLObjectType | AnyType | unknown) {
+export interface FieldDecoratorConfig {
+  name ?: string;
+  nullable ?: boolean;
+}
+
+export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: void) => Type<TResult> | GraphQLObjectType | AnyType | unknown, config ?: FieldDecoratorConfig) {
   return (target: TSource, propertyKey: string) => {
     const existingGraphQLObjectTypeQueue = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target.constructor) || [];
     existingGraphQLObjectTypeQueue.push(() => {
       const existingConfig: GraphQLObjectTypeConfig<TSource, TContext> = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, target.constructor) || {};          
-      const fieldName = propertyKey;      
+      const fieldName = ( config && config.name ) || propertyKey;      
       existingConfig.fields = existingConfig.fields || {};
       existingConfig.fields[fieldName] = existingConfig.fields[fieldName] || {};
       existingConfig.fields[fieldName].__defineGetter__('type', () => {
         const fieldType = typeFactory ? typeFactory() : (typeof target[propertyKey] === 'function' ? Reflect.getMetadata(DESIGN_RETURNTYPE, target, propertyKey) : Reflect.getMetadata(DESIGN_TYPE, target, propertyKey)) ;
-        return getObjectTypeFromClass(fieldType) || getScalarTypeFromClass(fieldType) || fieldType;
+        const graphQLType = getObjectTypeFromClass(fieldType) || getScalarTypeFromClass(fieldType) || fieldType;
+        if (config && 'nullable' in config && !config.nullable) {
+          return new GraphQLNonNull(graphQLType);
+        } else {
+          return graphQLType;
+        }
       });
       if (typeof target[propertyKey] === 'function') {
         existingConfig.fields[fieldName].resolve = ((root, args, context) => {
