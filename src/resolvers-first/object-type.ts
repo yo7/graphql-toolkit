@@ -1,7 +1,7 @@
 // tslint:disable-next-line:no-reference
 /// <reference path="../../node_modules/reflect-metadata/index.d.ts" />
 
-import { GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLList, GraphQLFieldResolver, GraphQLFieldConfig, GraphQLNonNull, GraphQLInputType, GraphQLFieldConfigArgumentMap, GraphQLArgumentConfig } from 'graphql';
+import { GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLList, GraphQLFieldResolver, GraphQLNonNull, GraphQLInputType } from 'graphql';
 import { Type, DESIGN_PARAMTYPES, DESIGN_TYPE, DESIGN_RETURNTYPE, AnyType, MaybeArray } from './common';
 import { getScalarTypeFromClass } from './scalar-type';
 import { getInputTypeFromClass } from './input-object-type';
