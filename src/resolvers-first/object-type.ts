@@ -133,7 +133,7 @@ export interface ObjectTypeDecoratorConfig<TResult, TContext> {
   injector?: ContextInjectorFactory<TContext> | Injector;
 }
 
-export function ObjectType<TSource, TResult, TContext>(config: ObjectTypeDecoratorConfig<TResult, TContext> = {}): ClassDecorator {
+export function ObjectType<TSource, TResult, TContext = any>(config: ObjectTypeDecoratorConfig<TResult, TContext> = {}): ClassDecorator {
   return target => {
     // Delete the existing metadata on redeclaration, because it should override the existing generated ObjectType of the inherited super class
     Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE, undefined, target);
