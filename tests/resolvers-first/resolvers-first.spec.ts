@@ -131,6 +131,29 @@ describe('ResolverFirst', async () => {
         expect(result.data.foo).toBe("FOO");
         expect(result.data.bar).toBe("BAR");
     });
+    it('should not affect parent type in case of extension', async () => {
+      @ObjectType({ name: 'Foo '})
+      class BaseFoo {
+        @Field()
+        foo: string;
+      }
+      @ObjectType({ name: 'Foo'})
+      class ExtendedFoo extends BaseFoo {
+        @Field()
+        bar: string;
+      }
+      expect(stripWhitespaces(printType(getObjectTypeFromClass(BaseFoo)))).toBe(stripWhitespaces(`
+        type Foo {
+          foo: String
+        }
+      `))
+      expect(stripWhitespaces(printType(getObjectTypeFromClass(ExtendedFoo)))).toBe(stripWhitespaces(`
+        type Foo {
+          foo: String
+          bar: String
+        }
+      `))
+    });
     it('should make fields non-null if nullable is set false', async () => {
       @ObjectType()
       class Foo {
