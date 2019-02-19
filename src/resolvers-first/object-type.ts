@@ -6,6 +6,7 @@ import { Type, DESIGN_PARAMTYPES, DESIGN_TYPE, DESIGN_RETURNTYPE, AnyType, Maybe
 import { getScalarTypeFromClass } from './scalar-type';
 import { getInputTypeFromClass } from './input-object-type';
 import { asArray } from '../utils/helpers';
+import { withFilter } from 'graphql-subscriptions';
 
 export const CLASSES = 'classes';
 export const PROPERTY_KEYS = 'property-keys';
@@ -61,6 +62,7 @@ export interface FieldDecoratorConfig {
   name ?: string;
   nullable ?: boolean;
   subscribe ?: boolean;
+  filter ?: GraphQLFieldResolver<any, any, any>;
 }
 
 export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: void) => Type<TResult> | GraphQLObjectType | AnyType | unknown, config ?: FieldDecoratorConfig) {
@@ -94,8 +96,8 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
         }
       });
       if (typeof target[propertyKey] === 'function') {
-        const funcProp = config.subscribe ? 'subscribe' : 'resolve';
-        existingConfig.fields[fieldName][funcProp] = ((root, args, context) => {
+        const funcProp = (config && config.subscribe) ? 'subscribe' : 'resolve';
+        const resolverFn = existingConfig.fields[fieldName][funcProp] = ((root, args, context) => {
           // If 3rd party DI container is defined
           if (CONTEXT_INJECTOR_FACTORY_MAP.has(target.constructor)) {
             const contextInjectorFactoryDefinition: ContextInjectorFactory<TContext> = CONTEXT_INJECTOR_FACTORY_MAP.get(target.constructor);
@@ -120,6 +122,36 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
           }
           return target[propertyKey].call(root, ...Object['values'](args));
         }) as GraphQLFieldResolver<TSource, TContext, TArgs>; // TODO: NOT SAFE
+        if (config && config.subscribe && config.filter) {
+          existingConfig.fields[fieldName].subscribe = withFilter(
+            resolverFn,
+            (root, args, context, info) => {
+              const _this = {};
+              // If 3rd party DI container is defined
+              if (CONTEXT_INJECTOR_FACTORY_MAP.has(target.constructor)) {
+                const contextInjectorFactoryDefinition: ContextInjectorFactory<TContext> = CONTEXT_INJECTOR_FACTORY_MAP.get(target.constructor);
+                let injector: Injector;
+                if (typeof contextInjectorFactoryDefinition === 'function') {
+                  injector = contextInjectorFactoryDefinition(context);
+                } else if(typeof contextInjectorFactoryDefinition === 'object') {
+                  injector = contextInjectorFactoryDefinition;
+                }
+                const keys = Reflect.getMetadata(PROPERTY_KEYS, target.constructor) || [];
+                for (const key of keys) {
+                  if (Reflect.getMetadata(DESIGN_TYPE, target, key as string)) {
+                    Object.defineProperty(_this, key, {
+                      get() {
+                        const serviceIdentifier = Reflect.getMetadata(DESIGN_TYPE, target, key as string);
+                        return injector.get(serviceIdentifier);
+                      }
+                    })
+                  }
+                }
+              }
+              return config.filter.call(_this, root, args, context, info);
+            }
+          )
+        }
       }
       GRAPHQL_OBJECT_TYPE_CONFIG_MAP.set(target.constructor, existingConfig);
     });
