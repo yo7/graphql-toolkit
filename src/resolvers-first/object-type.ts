@@ -78,6 +78,10 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
       const existingConfig: GraphQLObjectTypeConfig<TSource, TContext> = GRAPHQL_OBJECT_TYPE_CONFIG_MAP.get(target.constructor) || superClassConfig;       
       const fieldName = ( config && config.name ) || propertyKey;      
       existingConfig.fields = existingConfig.fields || {};
+      if (fieldName !== propertyKey && propertyKey in existingConfig.fields) {
+        existingConfig.fields[fieldName] = existingConfig.fields[propertyKey];
+        delete existingConfig.fields[propertyKey];
+      }
       existingConfig.fields[fieldName] = existingConfig.fields[fieldName] || {};
       existingConfig.fields[fieldName].__defineGetter__('type', () => {
         const fieldType = typeFactory ? typeFactory() : (typeof target[propertyKey] === 'function' ? Reflect.getMetadata(DESIGN_RETURNTYPE, target, propertyKey) : Reflect.getMetadata(DESIGN_TYPE, target, propertyKey)) ;
