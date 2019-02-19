@@ -7,35 +7,33 @@ import { getScalarTypeFromClass } from './scalar-type';
 import { getInputTypeFromClass } from './input-object-type';
 import { asArray } from '../utils/helpers';
 
-export const GRAPHQL_OBJECT_TYPE_CONFIG = 'graphql:object-type-config';
-export const GRAPHQL_OBJECT_TYPE = 'graphql:object-type';
-export const GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE = 'graphql-object-type-build-queue';
-export const CONTEXT_INJECTOR_FACTORY = 'context-injector:factory';
+export const CLASSES = 'classes';
 export const PROPERTY_KEYS = 'property-keys';
-export const CLASS_NAMES = 'class-names';
+export const GRAPHQL_OBJECT_TYPE_CONFIG_MAP = new WeakMap<Function, GraphQLObjectTypeConfig<any, any>>();
+export const GRAPHQL_OBJECT_TYPE_MAP = new WeakMap<Function, GraphQLObjectType<any, any>>();
+export const GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE_MAP = new WeakMap<Function, Array<() => void>>();
+export const CONTEXT_INJECTOR_FACTORY_MAP = new WeakMap<Function, ContextInjectorFactory<any>>();
 
 export interface ArgDecoratorConfig<TResult> {
   type ?: Type<TResult> | GraphQLInputType | object;
   nullable ?: boolean;
 }
 
+
+
 export function Arg<TSource, TContext, TResult>(argumentName: string, config ?: ArgDecoratorConfig<TResult>): ParameterDecorator {
   return (target, propertyKey, parameterIndex) => {
-    const existingGraphQLObjectTypeQueue = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target.constructor, target.constructor.name) || [];
+    const existingGraphQLObjectTypeQueue = GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE_MAP.get(target.constructor) || [];
     existingGraphQLObjectTypeQueue.push(() => {
-      const classNames: string[] = Reflect.getMetadata(CLASS_NAMES, target.constructor);
-      const classNameIndex = classNames.indexOf(target.constructor.name);
+      const classes: Function[] = Reflect.getMetadata(CLASSES, target.constructor);
+      const classIndex = classes.indexOf(target.constructor);
       let superClassConfig: GraphQLObjectTypeConfig<TSource, TContext> = {} as any;
-      if (classNameIndex > 0) {
-        const superClassName = classNames[classNameIndex - 1];
-        getObjectTypeFromClass(target.constructor, superClassName)
-        superClassConfig = Reflect.getMetadata(
-          GRAPHQL_OBJECT_TYPE_CONFIG,
-          target.constructor,
-          superClassName
-        );
+      if (classIndex > 0) {
+        const superClass = classes[classIndex - 1];
+        getObjectTypeFromClass(superClass);
+        superClassConfig = GRAPHQL_OBJECT_TYPE_CONFIG_MAP.get(superClass);
       }
-      const existingConfig: GraphQLObjectTypeConfig<TSource, TContext> = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, target.constructor, target.constructor.name) || superClassConfig;
+      const existingConfig: GraphQLObjectTypeConfig<TSource, TContext> = GRAPHQL_OBJECT_TYPE_CONFIG_MAP.get(target.constructor) || superClassConfig;
       const fieldName = propertyKey;
       existingConfig.fields = existingConfig.fields || {};
       existingConfig.fields[fieldName] = existingConfig.fields[fieldName] || {};
@@ -53,9 +51,9 @@ export function Arg<TSource, TContext, TResult>(argumentName: string, config ?: 
           };
         }
       });
-      Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, existingConfig, target.constructor, target.constructor.name);
+      GRAPHQL_OBJECT_TYPE_CONFIG_MAP.set(target.constructor, existingConfig);
     });
-    Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, existingGraphQLObjectTypeQueue, target.constructor, target.constructor.name);
+    GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE_MAP.set(target.constructor, existingGraphQLObjectTypeQueue);
   };
 }
 
@@ -66,22 +64,18 @@ export interface FieldDecoratorConfig {
 
 export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: void) => Type<TResult> | GraphQLObjectType | AnyType | unknown, config ?: FieldDecoratorConfig) {
   return (target: TSource, propertyKey: string) => {
-    const existingGraphQLObjectTypeQueue = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target.constructor, target.constructor.name) || [];
+    const existingGraphQLObjectTypeQueue = GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE_MAP.get(target.constructor) || [];
     existingGraphQLObjectTypeQueue.push(() => {
 
-      const classNames: string[] = Reflect.getMetadata(CLASS_NAMES, target.constructor);
-      const classNameIndex = classNames.indexOf(target.constructor.name);
+      const classes: Function[] = Reflect.getMetadata(CLASSES, target.constructor);
+      const classIndex = classes.indexOf(target.constructor);
       let superClassConfig: GraphQLObjectTypeConfig<TSource, TContext> = {} as any;
-      if (classNameIndex > 0) {
-        const superClassName = classNames[classNameIndex - 1];
-        getObjectTypeFromClass(target.constructor, superClassName)
-        superClassConfig = Reflect.getMetadata(
-          GRAPHQL_OBJECT_TYPE_CONFIG,
-          target.constructor,
-          superClassName
-        );
+      if (classIndex > 0) {
+        const superClass = classes[classIndex - 1];
+        getObjectTypeFromClass(superClass);
+        superClassConfig = GRAPHQL_OBJECT_TYPE_CONFIG_MAP.get(superClass) || {} as any;
       }
-      const existingConfig: GraphQLObjectTypeConfig<TSource, TContext> = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, target.constructor, target.constructor.name) || superClassConfig;          
+      const existingConfig: GraphQLObjectTypeConfig<TSource, TContext> = GRAPHQL_OBJECT_TYPE_CONFIG_MAP.get(target.constructor) || superClassConfig;       
       const fieldName = ( config && config.name ) || propertyKey;      
       existingConfig.fields = existingConfig.fields || {};
       existingConfig.fields[fieldName] = existingConfig.fields[fieldName] || {};
@@ -97,15 +91,15 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
       if (typeof target[propertyKey] === 'function') {
         existingConfig.fields[fieldName].resolve = ((root, args, context) => {
           // If 3rd party DI container is defined
-          if (Reflect.getMetadata(CONTEXT_INJECTOR_FACTORY, target.constructor, target.constructor.name)) {
-            const contextInjectorFactoryDefinition: ContextInjectorFactory<TContext> | Injector = Reflect.getMetadata(CONTEXT_INJECTOR_FACTORY, target.constructor, target.constructor.name);
+          if (CONTEXT_INJECTOR_FACTORY_MAP.has(target.constructor)) {
+            const contextInjectorFactoryDefinition: ContextInjectorFactory<TContext> = CONTEXT_INJECTOR_FACTORY_MAP.get(target.constructor);
             let injector: Injector;
             if (typeof contextInjectorFactoryDefinition === 'function') {
               injector = contextInjectorFactoryDefinition(context);
             } else if(typeof contextInjectorFactoryDefinition === 'object') {
               injector = contextInjectorFactoryDefinition;
             }
-            const keys = Reflect.getMetadata(PROPERTY_KEYS, target.constructor, target.constructor.name) || [];
+            const keys = Reflect.getMetadata(PROPERTY_KEYS, target.constructor) || [];
             for (const key of keys) {
               if (Reflect.getMetadata(DESIGN_TYPE, target, key as string)) {
                 root = root || {} as any;
@@ -121,9 +115,9 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
           return target[propertyKey].call(root, ...Object['values'](args));
         }) as GraphQLFieldResolver<TSource, TContext, TArgs>; // TODO: NOT SAFE
       }
-      Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, existingConfig, target.constructor, target.constructor.name);
+      GRAPHQL_OBJECT_TYPE_CONFIG_MAP.set(target.constructor, existingConfig);
     });
-    Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, existingGraphQLObjectTypeQueue, target.constructor, target.constructor.name);
+    GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE_MAP.set(target.constructor, existingGraphQLObjectTypeQueue);
   };
 }
 
@@ -131,7 +125,7 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
 export function Inject(serviceIdentifier ?: any): PropertyDecorator {
   return (target: any, propertyKey?: string, index?: number) => {
     const allDependencies = Reflect.getMetadata(DESIGN_PARAMTYPES, target) || [];
-    const propertyKeys = Reflect.getMetadata(PROPERTY_KEYS, target.constructor || target, (target.constructor || target).name) || [];
+    const propertyKeys = Reflect.getMetadata(PROPERTY_KEYS, target.constructor || target) || [];
     if (typeof propertyKey === 'undefined') {
       if (typeof index !== 'undefined') {
         allDependencies[index] = serviceIdentifier;
@@ -142,7 +136,7 @@ export function Inject(serviceIdentifier ?: any): PropertyDecorator {
       propertyKeys.push(propertyKey);
     }
     Reflect.defineMetadata(DESIGN_PARAMTYPES, allDependencies, target);
-    Reflect.defineMetadata(PROPERTY_KEYS, propertyKeys, target.constructor || target, (target.constructor || target).name);
+    Reflect.defineMetadata(PROPERTY_KEYS, propertyKeys, target.constructor || target);
     return target;
   };
 }
@@ -151,63 +145,57 @@ export interface Injector {
   get<T>(serviceIdentifier: any): T;
 }
 
-export type ContextInjectorFactory<TContext> = (context: TContext) => Injector;
+export type ContextInjectorFactory<TContext> = (context: TContext) => Injector | Injector;
 
 export interface ObjectTypeDecoratorConfig<TResult, TContext> {
   name?: string;
   implements?: MaybeArray<Type<TResult> | GraphQLObjectType | AnyType | unknown>;
-  injector?: ContextInjectorFactory<TContext> | Injector;
+  injector?: ContextInjectorFactory<TContext>;
 }
 
 export function ObjectType<TSource, TResult, TContext = any>(config: ObjectTypeDecoratorConfig<TResult, TContext> = {}): ClassDecorator {
   return target => {
 
-    const classNames: string[] = Reflect.getMetadata(CLASS_NAMES, target) || [];
-    classNames.push(target.name);
-    Reflect.defineMetadata(CLASS_NAMES, classNames, target);
+    const classes: Function[] = Reflect.getMetadata(CLASSES, target) || [];
+    classes.push(target);
+    Reflect.defineMetadata(CLASSES, classes, target);
 
-    // Delete the existing metadata on redeclaration, because it should override the existing generated ObjectType of the inherited super class
-    Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE, undefined, target, target.name);
     if (config.injector) {
-      Reflect.defineMetadata(CONTEXT_INJECTOR_FACTORY, config.injector, target, target.name);
+      CONTEXT_INJECTOR_FACTORY_MAP.set(target, config.injector);
     }
-    const existingGraphQLObjectTypeQueue = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target, target.name) || [];
+    const existingGraphQLObjectTypeQueue = GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE_MAP.get(target) || [];
     existingGraphQLObjectTypeQueue.push(() => {
-      const classNames: string[] = Reflect.getMetadata(CLASS_NAMES, target);
-      const classNameIndex = classNames.indexOf(target.name);
+      const classes: Function[] = Reflect.getMetadata(CLASSES, target);
+      const classIndex = classes.indexOf(target);
       let superClassConfig: GraphQLObjectTypeConfig<TSource, TContext> = {} as any;
-      if (classNameIndex > 0) {
-        const superClassName = classNames[classNameIndex - 1];
-        getObjectTypeFromClass(target, superClassName)
-        superClassConfig = Reflect.getMetadata(
-          GRAPHQL_OBJECT_TYPE_CONFIG,
-          target,
-          superClassName
-        );
+      if (classIndex > 0) {
+        const superClass = classes[classIndex - 1];
+        getObjectTypeFromClass(superClass);
+        superClassConfig = GRAPHQL_OBJECT_TYPE_CONFIG_MAP.get(superClass);
       }
-      const existingConfig: GraphQLObjectTypeConfig<TSource, TContext> = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG, target, target.name) || superClassConfig;
-      Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE, new GraphQLObjectType({
+      const existingConfig: GraphQLObjectTypeConfig<TSource, TContext> = GRAPHQL_OBJECT_TYPE_CONFIG_MAP.get(target) || superClassConfig;
+      GRAPHQL_OBJECT_TYPE_MAP.set(target, new GraphQLObjectType({
         name: config.name || target.name,
         interfaces: asArray(config.implements).map(interfaceType => getObjectTypeFromClass(interfaceType) || interfaceType),
         ...existingConfig,
-      }), target, target.name);
+      }))
     });
-    Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, existingGraphQLObjectTypeQueue, target, target.name);
+    GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE_MAP.set(target, existingGraphQLObjectTypeQueue);
     return target;
   };
 }
 
-export function getObjectTypeFromClass<T>(target: Type<T> | unknown, name = (target as Type<T>).name): any { // TODO: unknowns should be replaced with a proper type
+export function getObjectTypeFromClass<T>(target: Type<T> | unknown): any { // TODO: unknowns should be replaced with a proper type
   if (target instanceof Array) {
     const elementType = getObjectTypeFromClass(target[0]);
     return elementType && new GraphQLList(elementType);
   }
   if (
-    !Reflect.getMetadata(GRAPHQL_OBJECT_TYPE, target as Type<T>, name) && 
-    Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target as Type<T>, name)
+    !GRAPHQL_OBJECT_TYPE_CONFIG_MAP.has(target as Type<T>) && 
+    GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE_MAP.has(target as Type<T>)
   ) {
-    const existingGraphQLObjectTypeQueue: Array<Function> = Reflect.getMetadata(GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE, target as Type<T>, name);
+    const existingGraphQLObjectTypeQueue = GRAPHQL_OBJECT_TYPE_CONFIG_BUILD_QUEUE_MAP.get(target as Type<T>);
     existingGraphQLObjectTypeQueue.forEach(fn => fn());
   }
-  return Reflect.getMetadata(GRAPHQL_OBJECT_TYPE, target as Type<T>, name);
+  return GRAPHQL_OBJECT_TYPE_MAP.get(target as Type<T>);
 }

@@ -1,7 +1,7 @@
 import { GraphQLUnionType } from 'graphql';
 import { getScalarTypeFromClass } from './scalar-type';
-import { GRAPHQL_OBJECT_TYPE } from './object-type';
 import { AnyType } from './common';
+import { GRAPHQL_OBJECT_TYPE_MAP, getObjectTypeFromClass } from './object-type';
 
 interface UnionTypeDecoratorConfig<TTypes extends AnyType[]> {
   name: string;
@@ -11,14 +11,14 @@ interface UnionTypeDecoratorConfig<TTypes extends AnyType[]> {
 
 export function UnionType<TTypes extends Array<new (...args: any[]) => any>>(config: UnionTypeDecoratorConfig<TTypes>) {
   return (target: any): TTypes[any] => {
-    Reflect.defineMetadata(GRAPHQL_OBJECT_TYPE, new GraphQLUnionType({
+    GRAPHQL_OBJECT_TYPE_MAP.set(target, new GraphQLUnionType({
       name: config.name,
       resolveType: (...args) => {
         const type = config.resolveType(...args);
-        return Reflect.getMetadata(GRAPHQL_OBJECT_TYPE, type) || getScalarTypeFromClass(type) || type;
+        return getObjectTypeFromClass(type) || getScalarTypeFromClass(type) || type;
       },
-      types: config.types.map(type => Reflect.getMetadata(GRAPHQL_OBJECT_TYPE, type) || getScalarTypeFromClass(type) || type),
-    }), target);
+      types: config.types.map(type => getObjectTypeFromClass(type) || getScalarTypeFromClass(type) || type),
+    }) as any);
     return target;
   };
 }
