@@ -60,6 +60,7 @@ export function Arg<TSource, TContext, TResult>(argumentName: string, config ?: 
 export interface FieldDecoratorConfig {
   name ?: string;
   nullable ?: boolean;
+  subscribe ?: boolean;
 }
 
 export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: void) => Type<TResult> | GraphQLObjectType | AnyType | unknown, config ?: FieldDecoratorConfig) {
@@ -93,7 +94,8 @@ export function Field<TSource, TContext, TArgs, TResult>(typeFactory?: (type: vo
         }
       });
       if (typeof target[propertyKey] === 'function') {
-        existingConfig.fields[fieldName].resolve = ((root, args, context) => {
+        const funcProp = config.subscribe ? 'subscribe' : 'resolve';
+        existingConfig.fields[fieldName][funcProp] = ((root, args, context) => {
           // If 3rd party DI container is defined
           if (CONTEXT_INJECTOR_FACTORY_MAP.has(target.constructor)) {
             const contextInjectorFactoryDefinition: ContextInjectorFactory<TContext> = CONTEXT_INJECTOR_FACTORY_MAP.get(target.constructor);
