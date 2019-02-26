@@ -64,4 +64,18 @@ describe('schema from typedefs', () => {
     expect(schema.getTypeMap()['User']).toBeDefined();
     expect(schema.getTypeMap()['Query']).toBeDefined();
   });
+
+  it('should work with a single file', () => {
+    const glob = './tests/loaders/schema/test-files/schema.graphql';
+    const handler = new SchemaFromTypedefs();
+    const canHandle = handler.canHandle(glob);
+
+    expect(canHandle).toBeTruthy();
+
+    const built = handler.handle(glob);
+    const schema = buildASTSchema(built);
+
+    expect(schema.getTypeMap()['User']).toBeDefined();
+    expect(schema.getTypeMap()['Query']).toBeDefined();
+  });
 });
