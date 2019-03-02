@@ -18,7 +18,7 @@ describe('loadSchema', () => {
     expect(schema.getTypeMap()['Query']).toBeDefined();
   });
 
-it('should work with graphql-tag and gatsby by default and not throw on files without those parsers', async () => {
+ it('should work with graphql-tag and gatsby by default and not throw on files without those parsers', async () => {
   const schemaPath = './tests/loaders/schema/test-files/schema-dir/type-defs/*.ts';
   const built = await loadSchema(schemaPath);
   let schema: GraphQLSchema;
@@ -29,4 +29,5 @@ it('should work with graphql-tag and gatsby by default and not throw on files wi
 
   expect(schema.getTypeMap()['User']).toBeDefined();
   expect(schema.getTypeMap()['Query']).toBeDefined();
+ });
 });
