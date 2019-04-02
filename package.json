@@ -43,7 +43,7 @@
     "typescript": "3.4.1"
   },
   "dependencies": {
-    "aggregate-error": "2.2.0",
+    "aggregate-error": "3.0.0",
     "asyncro": "^3.0.0",
     "deepmerge": "3.2.0",
     "glob": "7.1.3",
