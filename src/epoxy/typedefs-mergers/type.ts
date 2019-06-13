@@ -9,7 +9,7 @@ export function mergeType(node: ObjectTypeDefinitionNode | ObjectTypeExtensionNo
       return {
         name: node.name,
         description: node['description'] || existingNode['description'],
-        kind: (node.kind === 'ObjectTypeDefinition' || existingNode.kind === 'ObjectTypeDefinition') ? 'ObjectTypeDefinition' : 'ObjectTypeExtension',
+        kind: node.kind === 'ObjectTypeDefinition' || existingNode.kind === 'ObjectTypeDefinition' ? 'ObjectTypeDefinition' : 'ObjectTypeExtension',
         loc: node.loc,
         fields: mergeFields(node.fields, existingNode.fields),
         directives: mergeDirectives(node.directives, existingNode.directives),

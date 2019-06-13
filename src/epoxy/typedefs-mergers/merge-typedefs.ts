@@ -18,8 +18,9 @@ import {
 import { isGraphQLSchema, isSourceTypes, isStringTypes, isSchemaDefinition } from './utils';
 import { MergedResultMap, mergeGraphQLNodes } from './merge-nodes';
 
-interface Config {
+export interface Config {
   useSchemaDefinition?: boolean;
+  forceSchemaDefinition?: boolean;
 }
 
 export function mergeGraphQLSchemas(types: Array<string | Source | DocumentNode | GraphQLSchema>, config?: Partial<Config>) {
@@ -37,6 +38,7 @@ export function mergeTypeDefs(types: Array<string | Source | DocumentNode | Grap
     kind: 'Document',
     definitions: mergeGraphQLTypes(types, {
       useSchemaDefinition: true,
+      forceSchemaDefinition: false,
       ...config,
     }),
   };
@@ -46,7 +48,12 @@ function fixSchemaAst(schema: GraphQLSchema): GraphQLSchema {
   return buildASTSchema(parse(printSchema(schema)));
 }
 
-function createSchemaDefinition(def: { query: string | GraphQLObjectType | null; mutation: string | GraphQLObjectType | null; subscription: string | GraphQLObjectType | null }): string {
+function createSchemaDefinition(
+  def: { query: string | GraphQLObjectType | null; mutation: string | GraphQLObjectType | null; subscription: string | GraphQLObjectType | null },
+  config?: {
+    force?: boolean;
+  }
+): string {
   const schemaRoot: {
     query?: string;
     mutation?: string;
@@ -69,6 +76,8 @@ function createSchemaDefinition(def: { query: string | GraphQLObjectType | null;
 
   if (fields.length) {
     return `schema { ${fields.join('\n')} }`;
+  } else if (config && config.force) {
+    return ` schema { query: Query } `;
   }
 
   return undefined;
@@ -160,7 +169,9 @@ export function mergeGraphQLTypes(types: Array<string | Source | DocumentNode | 
     };
   }
 
-  const schemaDefinition = createSchemaDefinition(schemaDef);
+  const schemaDefinition = createSchemaDefinition(schemaDef, {
+    force: config.forceSchemaDefinition,
+  });
 
   if (!schemaDefinition) {
     return Object.values(mergedNodes);
