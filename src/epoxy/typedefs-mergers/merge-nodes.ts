@@ -21,15 +21,20 @@ import { mergeUnion } from './union';
 import { mergeInputType } from './input-type';
 import { mergeInterface } from './interface';
 import { mergeDirective } from './directives';
+import { collectComment } from './comments';
 
-export type MergedResultMap = {[name: string]: DefinitionNode};
+export type MergedResultMap = { [name: string]: DefinitionNode };
 
 export function mergeGraphQLNodes(nodes: ReadonlyArray<DefinitionNode>, config?: Config): MergedResultMap {
   return nodes.reduce<MergedResultMap>((prev: MergedResultMap, nodeDefinition: DefinitionNode) => {
-    const node = (nodeDefinition as any);
+    const node = nodeDefinition as any;
 
     if (node && node.name && node.name.value) {
       const name = node.name.value;
+
+      if (config && config.commentDescriptions) {
+        collectComment(node);
+      }
 
       if (isGraphQLType(nodeDefinition) || isGraphQLTypeExtension(nodeDefinition)) {
         prev[name] = mergeType(nodeDefinition, prev[name] as any, config);
