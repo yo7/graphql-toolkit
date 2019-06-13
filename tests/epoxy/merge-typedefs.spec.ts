@@ -193,7 +193,7 @@ describe('Merge TypeDefs', () => {
 
       expect(stripWhitespaces(print(merged))).toBe(
         stripWhitespaces(`
-        type Query @test @test2 {
+        type Query @test2 @test {
           f1: String
           f2: String
           f3: MyType
@@ -264,7 +264,7 @@ describe('Merge TypeDefs', () => {
           directive @id(primitiveArg: String, arrayArg: [String]) on FIELD_DEFINITION
 
           type MyType {
-            id: Int @id(arrayArg: ["2", "1"], primitiveArg: "1")
+            id: Int @id(primitiveArg: "1", arrayArg: ["1", "2"])
           }
 
           type Query {
@@ -314,6 +314,33 @@ describe('Merge TypeDefs', () => {
           }
         `)
       );
+    });
+
+    it('stacks all directives on fields', () => {
+      const types = [/* GraphQL */`
+        type Client {
+          id: ID!
+          name: String
+          age: Int
+        }
+        
+        type Query {
+          client: Client @foo @foo
+        }
+        
+        type Query {
+          client: Client @bar
+        }
+        
+        type Query {
+          client: Client @foo @bar
+        }
+      `];
+      const merged = print(mergeTypeDefs(types));
+  
+      expect(merged.match(/\@foo/g)).toHaveLength(1);
+      expect(merged.match(/\@bar/g)).toHaveLength(1);
+      expect(merged).toContain('client: Client @foo @bar');
     });
 
     it('should merge two GraphQLSchema with directives correctly', () => {
@@ -779,4 +806,6 @@ describe('Merge TypeDefs', () => {
       );
     });
   });
+
+
 });

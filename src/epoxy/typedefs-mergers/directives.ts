@@ -39,9 +39,9 @@ function mergeArguments(a1: ArgumentNode[], a2: ArgumentNode[]): ArgumentNode[] 
 }
 
 export function mergeDirectives(d1: ReadonlyArray<DirectiveNode>, d2: ReadonlyArray<DirectiveNode>): DirectiveNode[] {
-  const result = [...d2];
+  const result = [...d1];
 
-  for (const directive of d1) {
+  for (const directive of d2) {
     if (directiveAlreadyExists(result, directive)) {
       const existingDirectiveIndex = result.findIndex(d => d.name.value === directive.name.value);
       const existingDirective = result[existingDirectiveIndex];
