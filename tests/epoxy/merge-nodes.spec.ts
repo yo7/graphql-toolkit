@@ -77,8 +77,8 @@ describe('Merge Nodes', () => {
       const type: any = merged['A'];
 
       expect(type.directives.length).toBe(2);
-      expect(type.directives[0].name.value).toBe('test');
-      expect(type.directives[1].name.value).toBe('other');
+      expect(type.directives[0].name.value).toBe('other');
+      expect(type.directives[1].name.value).toBe('test');
     });
 
     it('Should merge GraphQL Types and preserve directives', () => {
@@ -98,8 +98,8 @@ describe('Merge Nodes', () => {
       const type: any = merged['A'];
 
       expect(type.directives.length).toBe(2);
-      expect(type.directives[0].name.value).toBe('test');
-      expect(type.directives[1].name.value).toBe('test2');
+      expect(type.directives[0].name.value).toBe('test2');
+      expect(type.directives[1].name.value).toBe('test');
     });
 
     it('Should merge GraphQL Types that extends the different interfaces', () => {
@@ -151,8 +151,8 @@ describe('Merge Nodes', () => {
       const result: any = merged['A'];
 
       expect(result.directives.length).toBe(2);
-      expect(result.directives[0].name.value).toBe('test');
-      expect(result.directives[1].name.value).toBe('test2');
+      expect(result.directives[0].name.value).toBe('test2');
+      expect(result.directives[1].name.value).toBe('test');
     });
 
     it('should merge directives correctly when only one defined', () => {

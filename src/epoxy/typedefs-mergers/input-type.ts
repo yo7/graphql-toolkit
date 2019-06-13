@@ -1,3 +1,4 @@
+import { Config } from './merge-typedefs';
 import { InputObjectTypeDefinitionNode } from 'graphql';
 import { mergeFields } from './fields';
 import { mergeDirectives } from './directives';
@@ -5,7 +6,8 @@ import { InputValueDefinitionNode, InputObjectTypeExtensionNode } from 'graphql/
 
 export function mergeInputType(
   node: InputObjectTypeDefinitionNode | InputObjectTypeExtensionNode,
-  existingNode: InputObjectTypeDefinitionNode | InputObjectTypeExtensionNode): InputObjectTypeDefinitionNode | InputObjectTypeExtensionNode {
+  existingNode: InputObjectTypeDefinitionNode | InputObjectTypeExtensionNode,
+  config?: Config): InputObjectTypeDefinitionNode | InputObjectTypeExtensionNode {
 
   if (existingNode) {
     try {
@@ -14,7 +16,7 @@ export function mergeInputType(
         description: node['description'] || existingNode['description'],
         kind: (node.kind === 'InputObjectTypeDefinition' || existingNode.kind === 'InputObjectTypeDefinition') ? 'InputObjectTypeDefinition' : 'InputObjectTypeExtension',
         loc: node.loc,
-        fields: mergeFields<InputValueDefinitionNode>(node.fields, existingNode.fields),
+        fields: mergeFields<InputValueDefinitionNode>(node, node.fields, existingNode.fields, config),
         directives: mergeDirectives(node.directives, existingNode.directives),
       } as any;
     } catch (e) {

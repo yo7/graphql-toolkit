@@ -19,8 +19,19 @@ import { isGraphQLSchema, isSourceTypes, isStringTypes, isSchemaDefinition } fro
 import { MergedResultMap, mergeGraphQLNodes } from './merge-nodes';
 
 export interface Config {
+  /**
+   * Produces `schema { }`
+   */
   useSchemaDefinition?: boolean;
+  /**
+   * Creates schema definition, even when no types are available
+   * Produces: `schema { query: Query }`
+   */
   forceSchemaDefinition?: boolean;
+  /**
+   * Throws an error on a merge conflict
+   */
+  throwOnConflict?: boolean;
 }
 
 export function mergeGraphQLSchemas(types: Array<string | Source | DocumentNode | GraphQLSchema>, config?: Partial<Config>) {
@@ -39,6 +50,7 @@ export function mergeTypeDefs(types: Array<string | Source | DocumentNode | Grap
     definitions: mergeGraphQLTypes(types, {
       useSchemaDefinition: true,
       forceSchemaDefinition: false,
+      throwOnConflict: false,
       ...config,
     }),
   };
@@ -155,7 +167,7 @@ export function mergeGraphQLTypes(types: Array<string | Source | DocumentNode | 
       subscription: null,
     }
   );
-  const mergedNodes: MergedResultMap = mergeGraphQLNodes(allNodes);
+  const mergedNodes: MergedResultMap = mergeGraphQLNodes(allNodes, config);
   const allTypes = Object.keys(mergedNodes);
 
   if (config && config.useSchemaDefinition) {

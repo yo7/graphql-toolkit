@@ -1,3 +1,4 @@
+import { Config } from './merge-typedefs';
 import { DefinitionNode } from 'graphql';
 import {
   isGraphQLEnum,
@@ -23,7 +24,7 @@ import { mergeDirective } from './directives';
 
 export type MergedResultMap = {[name: string]: DefinitionNode};
 
-export function mergeGraphQLNodes(nodes: ReadonlyArray<DefinitionNode>): MergedResultMap {
+export function mergeGraphQLNodes(nodes: ReadonlyArray<DefinitionNode>, config?: Config): MergedResultMap {
   return nodes.reduce<MergedResultMap>((prev: MergedResultMap, nodeDefinition: DefinitionNode) => {
     const node = (nodeDefinition as any);
 
@@ -31,7 +32,7 @@ export function mergeGraphQLNodes(nodes: ReadonlyArray<DefinitionNode>): MergedR
       const name = node.name.value;
 
       if (isGraphQLType(nodeDefinition) || isGraphQLTypeExtension(nodeDefinition)) {
-        prev[name] = mergeType(nodeDefinition, prev[name] as any);
+        prev[name] = mergeType(nodeDefinition, prev[name] as any, config);
       } else if (isGraphQLEnum(nodeDefinition) || isGraphQLEnumExtension(nodeDefinition)) {
         prev[name] = mergeEnum(nodeDefinition, prev[name] as any);
       } else if (isGraphQLUnion(nodeDefinition) || isGraphQLUnionExtension(nodeDefinition)) {
@@ -39,9 +40,9 @@ export function mergeGraphQLNodes(nodes: ReadonlyArray<DefinitionNode>): MergedR
       } else if (isGraphQLScalar(nodeDefinition) || isGraphQLScalarExtension(nodeDefinition)) {
         prev[name] = nodeDefinition;
       } else if (isGraphQLInputType(nodeDefinition) || isGraphQLInputTypeExtension(nodeDefinition)) {
-        prev[name] = mergeInputType(nodeDefinition, prev[name] as any);
+        prev[name] = mergeInputType(nodeDefinition, prev[name] as any, config);
       } else if (isGraphQLInterface(nodeDefinition) || isGraphQLInterfaceExtension(nodeDefinition)) {
-        prev[name] = mergeInterface(nodeDefinition, prev[name] as any);
+        prev[name] = mergeInterface(nodeDefinition, prev[name] as any, config);
       } else if (isGraphQLDirective(nodeDefinition)) {
         prev[name] = mergeDirective(nodeDefinition, prev[name] as any);
       }
