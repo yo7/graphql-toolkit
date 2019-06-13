@@ -30,7 +30,7 @@ export function mergeFields<T extends FieldDefinitionNode | InputValueDefinition
         preventConflicts(type, existing, field);
       }
 
-      existing['directives'] = mergeDirectives(field['directives'], existing['directives']);
+      existing['directives'] = mergeDirectives(field['directives'], existing['directives'], config);
     } else {
       result.push(field);
     }

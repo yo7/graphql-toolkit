@@ -51,6 +51,24 @@ export interface Config {
    * Default: false
    */
   commentDescriptions?: boolean;
+  /**
+   * Puts the next directive first.
+   * 
+   * Default: false
+   * 
+   * @example: 
+   * Given:
+   * ```graphql
+   *  type User { a: String @foo }
+   *  type User { a: String @bar }
+   * ```
+   * 
+   * Results:
+   * ```
+   *  type User { a: @bar @foo }
+   * ```
+   */
+  reverseDirectives?: boolean;
 }
 
 export function mergeGraphQLSchemas(types: Array<string | Source | DocumentNode | GraphQLSchema>, config?: Omit<Partial<Config>, 'commentDescriptions'>) {

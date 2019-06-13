@@ -309,7 +309,7 @@ describe('Merge TypeDefs', () => {
 
       expect(stripWhitespaces(print(merged))).toBe(
         stripWhitespaces(`
-        type Query @test2 @test {
+        type Query @test @test2 {
           f1: String
           f2: String
           f3: MyType

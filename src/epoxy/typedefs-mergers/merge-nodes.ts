@@ -39,9 +39,9 @@ export function mergeGraphQLNodes(nodes: ReadonlyArray<DefinitionNode>, config?:
       if (isGraphQLType(nodeDefinition) || isGraphQLTypeExtension(nodeDefinition)) {
         prev[name] = mergeType(nodeDefinition, prev[name] as any, config);
       } else if (isGraphQLEnum(nodeDefinition) || isGraphQLEnumExtension(nodeDefinition)) {
-        prev[name] = mergeEnum(nodeDefinition, prev[name] as any);
+        prev[name] = mergeEnum(nodeDefinition, prev[name] as any, config);
       } else if (isGraphQLUnion(nodeDefinition) || isGraphQLUnionExtension(nodeDefinition)) {
-        prev[name] = mergeUnion(nodeDefinition, prev[name] as any);
+        prev[name] = mergeUnion(nodeDefinition, prev[name] as any, config);
       } else if (isGraphQLScalar(nodeDefinition) || isGraphQLScalarExtension(nodeDefinition)) {
         prev[name] = nodeDefinition;
       } else if (isGraphQLInputType(nodeDefinition) || isGraphQLInputTypeExtension(nodeDefinition)) {

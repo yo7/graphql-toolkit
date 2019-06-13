@@ -77,8 +77,8 @@ describe('Merge Nodes', () => {
       const type: any = merged['A'];
 
       expect(type.directives.length).toBe(2);
-      expect(type.directives[0].name.value).toBe('other');
-      expect(type.directives[1].name.value).toBe('test');
+      expect(type.directives[0].name.value).toBe('test');
+      expect(type.directives[1].name.value).toBe('other');
     });
 
     it('Should merge GraphQL Types and preserve directives', () => {
@@ -95,6 +95,19 @@ describe('Merge Nodes', () => {
       const type1 = parse(`type A @test { f1: String }`);
       const type2 = parse(`type A @test2 { f2: Int}`);
       const merged = mergeGraphQLNodes([...type1.definitions, ...type2.definitions]);
+      const type: any = merged['A'];
+
+      expect(type.directives.length).toBe(2);
+      expect(type.directives[0].name.value).toBe('test');
+      expect(type.directives[1].name.value).toBe('test2');
+    });
+
+    it('Should merge GraphQL Types and merge directives (reversed)', () => {
+      const type1 = parse(`type A @test { f1: String }`);
+      const type2 = parse(`type A @test2 { f2: Int}`);
+      const merged = mergeGraphQLNodes([...type1.definitions, ...type2.definitions], {
+        reverseDirectives: true
+      });
       const type: any = merged['A'];
 
       expect(type.directives.length).toBe(2);
@@ -151,8 +164,8 @@ describe('Merge Nodes', () => {
       const result: any = merged['A'];
 
       expect(result.directives.length).toBe(2);
-      expect(result.directives[0].name.value).toBe('test2');
-      expect(result.directives[1].name.value).toBe('test');
+      expect(result.directives[0].name.value).toBe('test');
+      expect(result.directives[1].name.value).toBe('test2');
     });
 
     it('should merge directives correctly when only one defined', () => {

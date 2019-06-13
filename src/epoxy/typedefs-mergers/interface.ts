@@ -16,7 +16,7 @@ export function mergeInterface(
         kind: (node.kind === 'InterfaceTypeDefinition' || existingNode.kind === 'InterfaceTypeDefinition') ? 'InterfaceTypeDefinition' : 'InterfaceTypeExtension',
         loc: node.loc,
         fields: mergeFields(node, node.fields, existingNode.fields, config),
-        directives: mergeDirectives(node.directives, existingNode.directives),
+        directives: mergeDirectives(node.directives, existingNode.directives, config),
       } as any;
     } catch (e) {
       throw new Error(`Unable to merge GraphQL interface "${node.name.value}": ${e.message}`);
